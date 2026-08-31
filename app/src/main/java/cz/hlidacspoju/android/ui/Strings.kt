@@ -50,7 +50,15 @@ private val Cs = mapOf(
     "not_departed" to "Ještě nevyjelo",
     "close" to "Zavřít",
     "edit" to "Upravit",
-    "notification_lead_time" to "Upozornit předem (minut)"
+    "notification_lead_time" to "Upozornit předem (minut)",
+    "notification_channel_service_name" to "Sledování spojů",
+    "notification_channel_delay_name" to "Zpoždění spojů",
+    "notification_service_title" to "Hlídač spojů",
+    "notification_service_text" to "Sledování zpoždění je aktivní",
+    "notification_line_title" to "Linka %1\$s – %2\$s",
+    "notification_delayed_text" to "Odjezd %1\$s v %2\$s má zpoždění %3\$d min.",
+    "notification_on_time_text" to "Odjezd %1\$s v %2\$s jede na čas.",
+    "notification_other_on_time_suffix" to " Ostatní spoje této linky jedou na čas."
 )
 
 private val En = mapOf(
@@ -94,7 +102,15 @@ private val En = mapOf(
     "not_departed" to "Not yet departed",
     "close" to "Close",
     "edit" to "Edit",
-    "notification_lead_time" to "Notify ahead by (minutes)"
+    "notification_lead_time" to "Notify ahead by (minutes)",
+    "notification_channel_service_name" to "Connection monitoring",
+    "notification_channel_delay_name" to "Connection delays",
+    "notification_service_title" to "Hlídač spojů",
+    "notification_service_text" to "Delay monitoring is active",
+    "notification_line_title" to "Line %1\$s – %2\$s",
+    "notification_delayed_text" to "Departure %1\$s at %2\$s is delayed by %3\$d min.",
+    "notification_on_time_text" to "Departure %1\$s at %2\$s is on time.",
+    "notification_other_on_time_suffix" to " Other departures on this line are on time."
 )
 
 private val translations: Map<AppLanguage, Map<String, String>> = mapOf(

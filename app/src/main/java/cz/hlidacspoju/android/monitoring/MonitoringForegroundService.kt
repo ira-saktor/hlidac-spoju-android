@@ -6,6 +6,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import cz.hlidacspoju.android.model.AppLanguage
 import cz.hlidacspoju.android.service.AppContainer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -18,19 +19,27 @@ class MonitoringForegroundService : Service() {
     private val scope = CoroutineScope(job)
     private lateinit var container: AppContainer
 
+    @Volatile
+    private var currentLanguage: AppLanguage = AppLanguage.CZECH
+
     override fun onCreate() {
         super.onCreate()
         container = AppContainer.getInstance(applicationContext)
-        NotificationHelper.ensureChannels(applicationContext)
+        NotificationHelper.ensureChannels(applicationContext, currentLanguage)
         scope.launch {
             runCatching { container.configStore.load() }.getOrNull()?.let {
                 container.loggingEnabled = it.loggingEnabled
+                currentLanguage = it.language
+                NotificationHelper.ensureChannels(applicationContext, currentLanguage)
             }
+        }
+        scope.launch {
+            container.configStore.settingsFlow.collect { currentLanguage = it.language }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = NotificationHelper.buildServiceNotification(applicationContext)
+        val notification = NotificationHelper.buildServiceNotification(applicationContext, currentLanguage)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 NotificationHelper.SERVICE_NOTIFICATION_ID,
@@ -43,7 +52,7 @@ class MonitoringForegroundService : Service() {
 
         scope.launch {
             container.monitoringService.delayChanged.collect { update ->
-                NotificationHelper.postDelayNotification(applicationContext, update)
+                NotificationHelper.postDelayNotification(applicationContext, update, currentLanguage)
             }
         }
         scope.launch {

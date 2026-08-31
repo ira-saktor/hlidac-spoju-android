@@ -6,7 +6,9 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import cz.hlidacspoju.android.MainActivity
 import cz.hlidacspoju.android.R
+import cz.hlidacspoju.android.model.AppLanguage
 import cz.hlidacspoju.android.service.DelayUpdate
+import cz.hlidacspoju.android.ui.Strings
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -16,26 +18,28 @@ object NotificationHelper {
     const val DELAY_CHANNEL_ID = "delay_updates"
     const val SERVICE_NOTIFICATION_ID = 1
 
-    fun ensureChannels(context: Context) {
+    fun ensureChannels(context: Context, language: AppLanguage = AppLanguage.CZECH) {
+        val strings = Strings(language)
         val manager = context.getSystemService(NotificationManager::class.java)
 
         manager.createNotificationChannel(
             NotificationChannel(
                 SERVICE_CHANNEL_ID,
-                "Sledování spojů",
+                strings("notification_channel_service_name"),
                 NotificationManager.IMPORTANCE_MIN
             )
         )
         manager.createNotificationChannel(
             NotificationChannel(
                 DELAY_CHANNEL_ID,
-                "Zpoždění spojů",
+                strings("notification_channel_delay_name"),
                 NotificationManager.IMPORTANCE_HIGH
             )
         )
     }
 
-    fun buildServiceNotification(context: Context): android.app.Notification {
+    fun buildServiceNotification(context: Context, language: AppLanguage = AppLanguage.CZECH): android.app.Notification {
+        val strings = Strings(language)
         val openAppIntent = android.app.PendingIntent.getActivity(
             context, 0,
             android.content.Intent(context, MainActivity::class.java),
@@ -43,8 +47,8 @@ object NotificationHelper {
         )
 
         return NotificationCompat.Builder(context, SERVICE_CHANNEL_ID)
-            .setContentTitle("Hlídač spojů")
-            .setContentText("Sledování zpoždění je aktivní")
+            .setContentTitle(strings("notification_service_title"))
+            .setContentText(strings("notification_service_text"))
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(openAppIntent)
             .setOngoing(true)
@@ -54,20 +58,21 @@ object NotificationHelper {
 
     private val departureTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-    fun postDelayNotification(context: Context, update: DelayUpdate) {
+    fun postDelayNotification(context: Context, update: DelayUpdate, language: AppLanguage = AppLanguage.CZECH) {
+        val strings = Strings(language)
         val scheduledTime = update.departureTime
             .atZoneSameInstant(ZoneId.systemDefault())
             .format(departureTimeFormatter)
 
         val text = if (update.isDelayed) {
-            "Odjezd ${update.headsign} v $scheduledTime má zpoždění ${update.delayMinutes} min." +
-                if (update.otherDeparturesOnTime) " Ostatní spoje této linky jedou na čas." else ""
+            strings.get("notification_delayed_text", update.headsign, scheduledTime, update.delayMinutes) +
+                if (update.otherDeparturesOnTime) strings("notification_other_on_time_suffix") else ""
         } else {
-            "Odjezd ${update.headsign} v $scheduledTime jede na čas."
+            strings.get("notification_on_time_text", update.headsign, scheduledTime)
         }
 
         val notification = NotificationCompat.Builder(context, DELAY_CHANNEL_ID)
-            .setContentTitle("Linka ${update.lineName} – ${update.connection.stopName}")
+            .setContentTitle(strings.get("notification_line_title", update.lineName, update.connection.stopName))
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
