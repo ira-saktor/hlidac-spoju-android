@@ -72,6 +72,17 @@ fun ConnectionDialog(
     var selectedStopGroup by remember { mutableStateOf<PidStopGroup?>(null) }
     var stopMenuExpanded by remember { mutableStateOf(false) }
 
+    // When editing, pre-select the stop group matching the existing connection's stop name once
+    // the stop register has loaded, so the Save button isn't stuck disabled requiring the user
+    // to re-pick the stop from the dropdown.
+    LaunchedEffect(stopsDocument) {
+        val doc = stopsDocument ?: return@LaunchedEffect
+        if (existing != null && selectedStopGroup == null) {
+            selectedStopGroup = viewModel.searchStopGroups(doc, existing.stopName)
+                .firstOrNull { it.name == existing.stopName }
+        }
+    }
+
     var lineName by remember { mutableStateOf(existing?.lineName ?: "") }
     var lineMenuExpanded by remember { mutableStateOf(false) }
 

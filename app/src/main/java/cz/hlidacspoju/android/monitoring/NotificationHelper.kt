@@ -7,6 +7,8 @@ import androidx.core.app.NotificationCompat
 import cz.hlidacspoju.android.MainActivity
 import cz.hlidacspoju.android.R
 import cz.hlidacspoju.android.service.DelayUpdate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /** Builds and posts user-facing delay notifications and the persistent foreground-service notification. */
 object NotificationHelper {
@@ -50,12 +52,18 @@ object NotificationHelper {
             .build()
     }
 
+    private val departureTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
     fun postDelayNotification(context: Context, update: DelayUpdate) {
+        val scheduledTime = update.departureTime
+            .atZoneSameInstant(ZoneId.systemDefault())
+            .format(departureTimeFormatter)
+
         val text = if (update.isDelayed) {
-            "Odjezd ${update.headsign} má zpoždění ${update.delayMinutes} min." +
+            "Odjezd ${update.headsign} v $scheduledTime má zpoždění ${update.delayMinutes} min." +
                 if (update.otherDeparturesOnTime) " Ostatní spoje této linky jedou na čas." else ""
         } else {
-            "Odjezd ${update.headsign} jede na čas."
+            "Odjezd ${update.headsign} v $scheduledTime jede na čas."
         }
 
         val notification = NotificationCompat.Builder(context, DELAY_CHANNEL_ID)
