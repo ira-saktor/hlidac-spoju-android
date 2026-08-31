@@ -66,7 +66,15 @@ class MonitoringService(
 
             if (now.toLocalTime().isAfter(connection.timeTo)) {
                 _statusUpdated.emit(
-                    ConnectionStatusUpdate(connection, 0, 0, 0, isScheduledToday = true, windowPassedToday = true)
+                    ConnectionStatusUpdate(
+                        connection,
+                        0,
+                        0,
+                        0,
+                        isScheduledToday = true,
+                        windowPassedToday = true,
+                        nextScheduledDay = connection.getNextScheduledDay(now.dayOfWeek)
+                    )
                 )
                 continue
             }

@@ -1,6 +1,7 @@
 package cz.hlidacspoju.android.service
 
 import cz.hlidacspoju.android.model.WatchedConnection
+import java.time.DayOfWeek
 import java.time.OffsetDateTime
 
 /**
@@ -17,7 +18,10 @@ data class ConnectionStatusUpdate(
     val isScheduledToday: Boolean,
     /** True when [isScheduledToday] is true but the current time is already past the
      * connection's monitoring window end for today (so no more departures will be checked). */
-    val windowPassedToday: Boolean = false
+    val windowPassedToday: Boolean = false,
+    /** When [windowPassedToday] is true, the next day of week (if any) on which this connection
+     * is scheduled to run again. */
+    val nextScheduledDay: DayOfWeek? = null
 )
 
 /** Raised when a monitored trip's delay is newly known or has changed since the last check. */

@@ -144,7 +144,12 @@ private fun ConnectionDetailDialog(
                 )
                 when {
                     status == null || !status.isScheduledToday -> Text(strings("not_scheduled_today"))
-                    status.windowPassedToday -> Text(strings("window_passed_today"))
+                    status.windowPassedToday -> Text(
+                        status.nextScheduledDay?.let { strings.get("next_departure_on_day", dayLabel(strings, it)) }
+                            ?: strings("no_departure_found_in_window")
+                    )
+                    status.delayedCount == 0 && status.onTimeCount == 0 && status.notDepartedCount == 0 ->
+                        Text(strings("no_departure_found_in_window"))
                     else -> {
                         Text(strings.get("delayed_on_time", status.delayedCount, status.onTimeCount))
                         Text("${strings("not_departed")}: ${status.notDepartedCount}")
@@ -188,8 +193,10 @@ private fun ConnectionRow(
             Text(connection.name.ifBlank { "${connection.lineName} ${connection.stopName} → ${connection.direction}" })
             val statusText = when {
                 status == null || !status.isScheduledToday -> strings("not_scheduled_today")
-                status.windowPassedToday -> strings("window_passed_today")
-                status.delayedCount == 0 && status.onTimeCount == 0 && status.notDepartedCount == 0 -> strings("no_current_departures")
+                status.windowPassedToday -> status.nextScheduledDay?.let {
+                    strings.get("next_departure_on_day", dayLabel(strings, it))
+                } ?: strings("no_departure_found_in_window")
+                status.delayedCount == 0 && status.onTimeCount == 0 && status.notDepartedCount == 0 -> strings("no_departure_found_in_window")
                 else -> strings.get("delayed_on_time", status.delayedCount, status.onTimeCount)
             }
             Text(statusText, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
