@@ -23,5 +23,8 @@ data class AppSettings(
     val stopsLastUpdatedUtcMillis: Long? = null,
     /** Whether the app is allowed to write logs (Logcat + HTTP request/response logging).
      * Should be turned off for Play Store releases handling sensitive data. */
-    val loggingEnabled: Boolean = false
+    val loggingEnabled: Boolean = false,
+    /** How many minutes before a monitored departure a delay notification may be sent.
+     * Departures further away than this are still shown in the UI but don't trigger a notification. */
+    val notificationLeadTimeMinutes: Int = 30
 )

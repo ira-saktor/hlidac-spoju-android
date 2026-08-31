@@ -49,7 +49,8 @@ private val Cs = mapOf(
     "connection_detail" to "Detail spoje",
     "not_departed" to "Ještě nevyjelo",
     "close" to "Zavřít",
-    "edit" to "Upravit"
+    "edit" to "Upravit",
+    "notification_lead_time" to "Upozornit předem (minut)"
 )
 
 private val En = mapOf(
@@ -92,7 +93,8 @@ private val En = mapOf(
     "connection_detail" to "Connection detail",
     "not_departed" to "Not yet departed",
     "close" to "Close",
-    "edit" to "Edit"
+    "edit" to "Edit",
+    "notification_lead_time" to "Notify ahead by (minutes)"
 )
 
 private val translations: Map<AppLanguage, Map<String, String>> = mapOf(

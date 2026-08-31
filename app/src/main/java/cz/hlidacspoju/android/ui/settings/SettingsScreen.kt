@@ -60,6 +60,9 @@ fun SettingsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
     var pollIntervalText by remember(settings.pollIntervalSeconds) {
         mutableStateOf(settings.pollIntervalSeconds.toString())
     }
+    var leadTimeText by remember(settings.notificationLeadTimeMinutes) {
+        mutableStateOf(settings.notificationLeadTimeMinutes.toString())
+    }
     var languageMenuExpanded by remember { mutableStateOf(false) }
     var themeMenuExpanded by remember { mutableStateOf(false) }
 
@@ -89,6 +92,12 @@ fun SettingsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 value = pollIntervalText,
                 onValueChange = { pollIntervalText = it },
                 label = { Text(strings("poll_interval")) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = leadTimeText,
+                onValueChange = { leadTimeText = it },
+                label = { Text(strings("notification_lead_time")) },
                 modifier = Modifier.fillMaxWidth()
             )
             Column {
@@ -153,6 +162,7 @@ fun SettingsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             Button(onClick = {
                 viewModel.updateApiKey(apiKey.trim())
                 pollIntervalText.toIntOrNull()?.let { viewModel.updatePollIntervalSeconds(it) }
+                leadTimeText.toIntOrNull()?.let { viewModel.updateNotificationLeadTimeMinutes(it) }
                 onBack()
             }) {
                 Text(strings("save"))

@@ -85,6 +85,9 @@ class AppViewModel(private val container: AppContainer) : ViewModel() {
 
     fun updateLoggingEnabled(enabled: Boolean) = updateSettings { it.copy(loggingEnabled = enabled) }
 
+    fun updateNotificationLeadTimeMinutes(minutes: Int) =
+        updateSettings { it.copy(notificationLeadTimeMinutes = minutes) }
+
     /** Loads (from cache or network) the PID stop register used to power stop/line autocomplete. */
     suspend fun loadPidStops(): PidStopsDocument = container.pidStopsService.getCached()
 

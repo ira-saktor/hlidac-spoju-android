@@ -64,15 +64,17 @@ class MonitoringService(
                 continue
             }
 
-            if (!connection.isActiveNow(now)) {
-                val windowPassed = now.toLocalTime().isAfter(connection.timeTo)
+            if (now.toLocalTime().isAfter(connection.timeTo)) {
                 _statusUpdated.emit(
-                    ConnectionStatusUpdate(connection, 0, 0, 0, isScheduledToday = true, windowPassedToday = windowPassed)
+                    ConnectionStatusUpdate(connection, 0, 0, 0, isScheduledToday = true, windowPassedToday = true)
                 )
                 continue
             }
 
-            pollConnection(connection)
+            // Fetch/show upcoming departures for the rest of today's window even before it
+            // starts, so the UI reflects them ahead of time. Notifications are still gated by
+            // the configured lead time inside pollConnection.
+            pollConnection(connection, settings.notificationLeadTimeMinutes)
         }
 
         // Forget delay history for connections the user has since removed.
@@ -81,10 +83,14 @@ class MonitoringService(
         orphanedKeys.forEach { lastKnownDelays.remove(it) }
     }
 
-    private suspend fun pollConnection(connection: WatchedConnection) {
+    private suspend fun pollConnection(connection: WatchedConnection, notificationLeadTimeMinutes: Int) {
         if (connection.gtfsStopIds.isEmpty()) return
 
-        val departures = golemioClient.getDepartures(connection.gtfsStopIds)
+        val departures = golemioClient.getDepartures(
+            connection.gtfsStopIds,
+            minutesAfter = MAX_LOOKAHEAD_MINUTES,
+            limit = 100
+        )
 
         val allMatching = departures.filter { matchesConnection(connection, it) }
         val matching = allMatching.filter { it.delay?.isAvailable == true && it.delay.minutes != null }
@@ -106,12 +112,18 @@ class MonitoringService(
             val tripId = departure.trip?.id ?: ""
             val key = connection.id to tripId
 
-            if (lastKnownDelays[key] == delayMinutes) continue
-            lastKnownDelays[key] = delayMinutes
-
             val departureTime = parseTimestamp(departure.departureTimestamp?.predicted)
                 ?: parseTimestamp(departure.departureTimestamp?.scheduled)
                 ?: OffsetDateTime.now()
+
+            // Only notify once the departure is within the configured lead time; further-out
+            // departures are still reflected in the status counts above but stay silent so the
+            // user isn't alerted a day in advance.
+            val minutesUntilDeparture = java.time.Duration.between(OffsetDateTime.now(), departureTime).toMinutes()
+            if (minutesUntilDeparture > notificationLeadTimeMinutes) continue
+
+            if (lastKnownDelays[key] == delayMinutes) continue
+            lastKnownDelays[key] = delayMinutes
 
             val otherDeparturesOnTime = matching
                 .filter { (it.trip?.id ?: "") != tripId }
@@ -160,5 +172,9 @@ class MonitoringService(
     companion object {
         /** Delay (in minutes) at or below which a departure is considered "on time". */
         private const val ON_TIME_THRESHOLD_MINUTES = 1
+
+        /** How far ahead (in minutes) to fetch upcoming departures, so the UI can show
+         * connections in the monitored window up to 24h in advance. */
+        private const val MAX_LOOKAHEAD_MINUTES = 24 * 60
     }
 }
