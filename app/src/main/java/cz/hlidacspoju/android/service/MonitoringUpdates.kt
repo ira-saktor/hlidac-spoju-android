@@ -1,0 +1,31 @@
+package cz.hlidacspoju.android.service
+
+import cz.hlidacspoju.android.model.WatchedConnection
+import java.time.OffsetDateTime
+
+/**
+ * Raised after each poll cycle for a connection, summarizing the state of its departures in the
+ * current time window (delayed / on time / not yet departed from the terminus).
+ */
+data class ConnectionStatusUpdate(
+    val connection: WatchedConnection,
+    val delayedCount: Int,
+    val onTimeCount: Int,
+    val notDepartedCount: Int,
+    /** Whether the connection's day-of-week schedule includes today (and it's enabled). When
+     * false, no departure data was fetched and the counts above are all zero. */
+    val isScheduledToday: Boolean
+)
+
+/** Raised when a monitored trip's delay is newly known or has changed since the last check. */
+data class DelayUpdate(
+    val connection: WatchedConnection,
+    val tripId: String,
+    val departureTime: OffsetDateTime,
+    val delayMinutes: Int,
+    val lineName: String,
+    val headsign: String,
+    val isDelayed: Boolean,
+    /** True if all other departures of this connection matched this poll cycle were on time. */
+    val otherDeparturesOnTime: Boolean = false
+)
