@@ -20,5 +20,8 @@ data class AppSettings(
     val onboardingCompleted: Boolean = false,
     val watchedConnections: List<WatchedConnection> = emptyList(),
     /** Epoch millis of the last successful stops refresh, or null if never refreshed. */
-    val stopsLastUpdatedUtcMillis: Long? = null
+    val stopsLastUpdatedUtcMillis: Long? = null,
+    /** Whether the app is allowed to write logs (Logcat + HTTP request/response logging).
+     * Should be turned off for Play Store releases handling sensitive data. */
+    val loggingEnabled: Boolean = false
 )

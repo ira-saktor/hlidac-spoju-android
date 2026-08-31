@@ -12,11 +12,24 @@ import java.util.concurrent.TimeUnit
 object NetworkModule {
     private val json = Json { ignoreUnknownKeys = true }
 
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.NONE
+    }
+
+    /** Toggled from [AppContainer] whenever settings load/change, so HTTP logging respects the
+     * user's logging preference (must be off for Play Store releases handling sensitive data). */
+    var loggingEnabled: Boolean = false
+        set(value) {
+            field = value
+            loggingInterceptor.level =
+                if (value) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
+        }
+
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
-            .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+            .addInterceptor(loggingInterceptor)
             .build()
     }
 

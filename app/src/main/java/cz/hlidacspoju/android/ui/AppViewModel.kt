@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import cz.hlidacspoju.android.model.AppSettings
+import cz.hlidacspoju.android.model.PidStopGroup
+import cz.hlidacspoju.android.model.PidStopsDocument
 import cz.hlidacspoju.android.model.WatchedConnection
 import cz.hlidacspoju.android.service.AppContainer
 import cz.hlidacspoju.android.service.ConnectionStatusUpdate
@@ -26,6 +28,7 @@ class AppViewModel(private val container: AppContainer) : ViewModel() {
             container.configStore.settingsFlow.collect { loaded ->
                 _settings.value = loaded
                 container.latestApiKey = loaded.golemioApiKey
+                container.loggingEnabled = loaded.loggingEnabled
             }
         }
         viewModelScope.launch {
@@ -39,14 +42,25 @@ class AppViewModel(private val container: AppContainer) : ViewModel() {
         it.copy(golemioApiKey = apiKey, onboardingCompleted = true)
     }
 
-    fun addOrUpdateConnection(connection: WatchedConnection) = updateSettings { current ->
-        val exists = current.watchedConnections.any { it.id == connection.id }
-        val updated = if (exists) {
-            current.watchedConnections.map { if (it.id == connection.id) connection else it }
-        } else {
-            current.watchedConnections + connection
+    fun addOrUpdateConnection(connection: WatchedConnection) {
+        viewModelScope.launch {
+            val current = _settings.value
+            val exists = current.watchedConnections.any { it.id == connection.id }
+            val updatedConnections = if (exists) {
+                current.watchedConnections.map { if (it.id == connection.id) connection else it }
+            } else {
+                current.watchedConnections + connection
+            }
+            val updated = current.copy(watchedConnections = updatedConnections)
+            _settings.value = updated
+            container.latestApiKey = updated.golemioApiKey
+            container.loggingEnabled = updated.loggingEnabled
+            container.configStore.save(updated)
+
+            // Immediately check status for the new/edited connection so the UI doesn't show
+            // "no connection watching is set for today" until the next scheduled poll.
+            runCatching { container.monitoringService.pollOnce() }
         }
-        current.copy(watchedConnections = updated)
     }
 
     fun removeConnection(connectionId: String) = updateSettings { current ->
@@ -65,6 +79,19 @@ class AppViewModel(private val container: AppContainer) : ViewModel() {
 
     fun updatePollIntervalSeconds(seconds: Int) = updateSettings { it.copy(pollIntervalSeconds = seconds) }
 
+    fun updateLanguage(language: cz.hlidacspoju.android.model.AppLanguage) = updateSettings { it.copy(language = language) }
+
+    fun updateTheme(theme: cz.hlidacspoju.android.model.AppTheme) = updateSettings { it.copy(theme = theme) }
+
+    fun updateLoggingEnabled(enabled: Boolean) = updateSettings { it.copy(loggingEnabled = enabled) }
+
+    /** Loads (from cache or network) the PID stop register used to power stop/line autocomplete. */
+    suspend fun loadPidStops(): PidStopsDocument = container.pidStopsService.getCached()
+
+    /** Diacritics-insensitive substring search over stop group names. */
+    fun searchStopGroups(doc: PidStopsDocument, query: String): List<PidStopGroup> =
+        container.pidStopsService.searchStopGroups(doc, query)
+
     fun checkNow() {
         viewModelScope.launch {
             runCatching { container.monitoringService.pollOnce() }
@@ -76,6 +103,7 @@ class AppViewModel(private val container: AppContainer) : ViewModel() {
             val updated = transform(_settings.value)
             _settings.value = updated
             container.latestApiKey = updated.golemioApiKey
+            container.loggingEnabled = updated.loggingEnabled
             container.configStore.save(updated)
         }
     }

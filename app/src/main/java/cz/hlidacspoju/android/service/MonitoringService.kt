@@ -65,8 +65,9 @@ class MonitoringService(
             }
 
             if (!connection.isActiveNow(now)) {
+                val windowPassed = now.toLocalTime().isAfter(connection.timeTo)
                 _statusUpdated.emit(
-                    ConnectionStatusUpdate(connection, 0, 0, 0, isScheduledToday = true)
+                    ConnectionStatusUpdate(connection, 0, 0, 0, isScheduledToday = true, windowPassedToday = windowPassed)
                 )
                 continue
             }

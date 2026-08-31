@@ -29,6 +29,14 @@ class AppContainer(context: Context) {
     @Volatile
     var latestApiKey: String = ""
 
+    /** Whether logging (Logcat + HTTP) is currently enabled, kept in sync with settings. */
+    @Volatile
+    var loggingEnabled: Boolean = false
+        set(value) {
+            field = value
+            NetworkModule.loggingEnabled = value
+        }
+
     companion object {
         @Volatile
         private var instance: AppContainer? = null

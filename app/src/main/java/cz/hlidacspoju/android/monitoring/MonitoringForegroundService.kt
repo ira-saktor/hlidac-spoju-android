@@ -22,6 +22,11 @@ class MonitoringForegroundService : Service() {
         super.onCreate()
         container = AppContainer.getInstance(applicationContext)
         NotificationHelper.ensureChannels(applicationContext)
+        scope.launch {
+            runCatching { container.configStore.load() }.getOrNull()?.let {
+                container.loggingEnabled = it.loggingEnabled
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -43,7 +48,7 @@ class MonitoringForegroundService : Service() {
         }
         scope.launch {
             container.monitoringService.pollError.collect { error ->
-                Log.w(TAG, "Poll error", error)
+                if (container.loggingEnabled) Log.w(TAG, "Poll error", error)
             }
         }
         scope.launch {

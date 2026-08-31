@@ -14,7 +14,10 @@ data class ConnectionStatusUpdate(
     val notDepartedCount: Int,
     /** Whether the connection's day-of-week schedule includes today (and it's enabled). When
      * false, no departure data was fetched and the counts above are all zero. */
-    val isScheduledToday: Boolean
+    val isScheduledToday: Boolean,
+    /** True when [isScheduledToday] is true but the current time is already past the
+     * connection's monitoring window end for today (so no more departures will be checked). */
+    val windowPassedToday: Boolean = false
 )
 
 /** Raised when a monitored trip's delay is newly known or has changed since the last check. */
