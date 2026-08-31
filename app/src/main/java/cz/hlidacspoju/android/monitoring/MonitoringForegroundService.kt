@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import cz.hlidacspoju.android.service.AppContainer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -41,6 +42,11 @@ class MonitoringForegroundService : Service() {
             }
         }
         scope.launch {
+            container.monitoringService.pollError.collect { error ->
+                Log.w(TAG, "Poll error", error)
+            }
+        }
+        scope.launch {
             container.monitoringService.runLoop()
         }
 
@@ -50,6 +56,10 @@ class MonitoringForegroundService : Service() {
     override fun onDestroy() {
         job.cancel()
         super.onDestroy()
+    }
+
+    companion object {
+        private const val TAG = "MonitoringFgService"
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
