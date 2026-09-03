@@ -17,6 +17,10 @@ class PidStopsService(
     private val json = Json { ignoreUnknownKeys = true }
     private var cached: PidStopsDocument? = null
 
+    // Precomputed (group, normalizedName) pairs for the currently cached document, so searching
+    // on every keystroke only needs to normalize the (short) query instead of every stop name.
+    private var normalizedNamesCache: Pair<PidStopsDocument, List<Pair<PidStopGroup, String>>>? = null
+
     /** Returns the cached stop list, loading it from disk if needed but never hitting the network. */
     suspend fun getCached(): PidStopsDocument {
         cached?.let { return it }
@@ -51,12 +55,35 @@ class PidStopsService(
     fun searchStopGroups(doc: PidStopsDocument, query: String): List<PidStopGroup> {
         if (query.isBlank()) return doc.stopGroups
 
-        val normalizedQuery = normalize(query)
-        return doc.stopGroups.filter { normalize(it.name).contains(normalizedQuery, ignoreCase = true) }
+        val normalizedQuery = normalize(query.trim())
+        val normalizedNames = normalizedNamesFor(doc)
+        return normalizedNames
+            .filter { (_, normalizedName) -> normalizedName.contains(normalizedQuery, ignoreCase = true) }
+            .map { it.first }
+    }
+
+    /** Exact (trim-insensitive) match against a stop group name, used to auto-confirm a typed
+     * stop name without requiring the user to pick it from the dropdown. */
+    fun findExactMatch(doc: PidStopsDocument, query: String): PidStopGroup? {
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) return null
+        return doc.stopGroups.firstOrNull { it.name.trim().equals(trimmed, ignoreCase = true) }
+    }
+
+    private fun normalizedNamesFor(doc: PidStopsDocument): List<Pair<PidStopGroup, String>> {
+        normalizedNamesCache?.let { (cachedDoc, names) -> if (cachedDoc === doc) return names }
+
+        val names = doc.stopGroups.map { it to normalize(it.name) }
+        normalizedNamesCache = doc to names
+        return names
     }
 
     private fun normalize(input: String): String {
         val formD = Normalizer.normalize(input, Normalizer.Form.NFD)
-        return formD.replace(Regex("\\p{Mn}+"), "")
+        return formD.replace(diacriticsRegex, "")
+    }
+
+    companion object {
+        private val diacriticsRegex = Regex("\\p{Mn}+")
     }
 }

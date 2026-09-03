@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
@@ -145,7 +146,21 @@ fun ConnectionDialog(
                             stopMenuExpanded = true
                         },
                         label = { Text(strings("stop")) },
-                        modifier = Modifier.menuAnchor()
+                        modifier = Modifier
+                            .menuAnchor()
+                            .onFocusChanged { focusState ->
+                                // Auto-confirm the typed stop name (trim/case-insensitive) once the
+                                // user moves to the next field, so they don't have to re-pick it
+                                // from the dropdown if they typed the exact name.
+                                if (!focusState.isFocused && selectedStopGroup == null) {
+                                    stopsDocument?.let { doc ->
+                                        viewModel.findExactStopMatch(doc, stopQuery)?.let { match ->
+                                            selectedStopGroup = match
+                                            stopQuery = match.name
+                                        }
+                                    }
+                                }
+                            }
                     )
                     DropdownMenu(
                         expanded = stopMenuExpanded && stopSuggestions.isNotEmpty(),

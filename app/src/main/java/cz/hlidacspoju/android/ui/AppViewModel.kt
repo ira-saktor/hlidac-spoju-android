@@ -95,6 +95,10 @@ class AppViewModel(private val container: AppContainer) : ViewModel() {
     fun searchStopGroups(doc: PidStopsDocument, query: String): List<PidStopGroup> =
         container.pidStopsService.searchStopGroups(doc, query)
 
+    /** Exact (trim/case-insensitive) match, used to auto-confirm a typed stop name on focus loss. */
+    fun findExactStopMatch(doc: PidStopsDocument, query: String): PidStopGroup? =
+        container.pidStopsService.findExactMatch(doc, query)
+
     fun checkNow() {
         viewModelScope.launch {
             runCatching { container.monitoringService.pollOnce() }
