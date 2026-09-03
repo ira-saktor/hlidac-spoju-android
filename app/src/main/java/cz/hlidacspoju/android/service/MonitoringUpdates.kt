@@ -28,11 +28,23 @@ data class ConnectionStatusUpdate(
 data class DelayUpdate(
     val connection: WatchedConnection,
     val tripId: String,
-    val departureTime: OffsetDateTime,
+    /** The scheduled (timetabled) departure time, unaffected by delay. */
+    val scheduledTime: OffsetDateTime,
+    /** The predicted/expected departure time (scheduled + delay). */
+    val expectedTime: OffsetDateTime,
     val delayMinutes: Int,
     val lineName: String,
     val headsign: String,
     val isDelayed: Boolean,
     /** True if all other departures of this connection matched this poll cycle were on time. */
     val otherDeparturesOnTime: Boolean = false
+)
+
+/** Raised soon after a monitored trip is detected to have departed its origin stop. */
+data class DepartureOccurredUpdate(
+    val connection: WatchedConnection,
+    val tripId: String,
+    val expectedTime: OffsetDateTime,
+    val lineName: String,
+    val headsign: String
 )

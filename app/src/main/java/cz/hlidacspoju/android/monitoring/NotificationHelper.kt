@@ -8,6 +8,7 @@ import cz.hlidacspoju.android.MainActivity
 import cz.hlidacspoju.android.R
 import cz.hlidacspoju.android.model.AppLanguage
 import cz.hlidacspoju.android.service.DelayUpdate
+import cz.hlidacspoju.android.service.DepartureOccurredUpdate
 import cz.hlidacspoju.android.ui.Strings
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -60,13 +61,21 @@ object NotificationHelper {
 
     fun postDelayNotification(context: Context, update: DelayUpdate, language: AppLanguage = AppLanguage.CZECH) {
         val strings = Strings(language)
-        val scheduledTime = update.departureTime
+        val scheduledTime = update.scheduledTime
+            .atZoneSameInstant(ZoneId.systemDefault())
+            .format(departureTimeFormatter)
+        val expectedTime = update.expectedTime
             .atZoneSameInstant(ZoneId.systemDefault())
             .format(departureTimeFormatter)
 
         val text = if (update.isDelayed) {
-            strings.get("notification_delayed_text", update.headsign, scheduledTime, update.delayMinutes) +
-                if (update.otherDeparturesOnTime) strings("notification_other_on_time_suffix") else ""
+            strings.get(
+                "notification_delayed_text",
+                update.headsign,
+                scheduledTime,
+                update.delayMinutes,
+                expectedTime
+            ) + if (update.otherDeparturesOnTime) strings("notification_other_on_time_suffix") else ""
         } else {
             strings.get("notification_on_time_text", update.headsign, scheduledTime)
         }
@@ -80,6 +89,30 @@ object NotificationHelper {
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager.notify(update.connection.id.hashCode(), notification)
+        // Use tripId (not just connection id) so multiple departures of the same connection
+        // each get their own notification instead of overwriting one another.
+        manager.notify((update.connection.id + update.tripId).hashCode(), notification)
+    }
+
+    fun postDepartureOccurredNotification(
+        context: Context,
+        update: DepartureOccurredUpdate,
+        language: AppLanguage = AppLanguage.CZECH
+    ) {
+        val strings = Strings(language)
+        val expectedTime = update.expectedTime
+            .atZoneSameInstant(ZoneId.systemDefault())
+            .format(departureTimeFormatter)
+
+        val notification = NotificationCompat.Builder(context, DELAY_CHANNEL_ID)
+            .setContentTitle(strings.get("notification_line_title", update.lineName, update.connection.stopName))
+            .setContentText(strings.get("notification_departed_text", update.headsign, expectedTime))
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.notify((update.connection.id + update.tripId + "_departed").hashCode(), notification)
     }
 }

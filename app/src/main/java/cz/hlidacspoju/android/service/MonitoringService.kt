@@ -26,8 +26,14 @@ class MonitoringService(
     // Keyed by (connectionId, tripId) -> last known delay in minutes, so we only notify on change.
     private val lastKnownDelays = HashMap<Pair<String, String>, Int>()
 
+    // Keyed by (connectionId, tripId) -> already notified that the bus departed the stop.
+    private val departedNotified = HashSet<Pair<String, String>>()
+
     private val _delayChanged = MutableSharedFlow<DelayUpdate>(extraBufferCapacity = 16)
     val delayChanged: SharedFlow<DelayUpdate> = _delayChanged
+
+    private val _departureOccurred = MutableSharedFlow<DepartureOccurredUpdate>(extraBufferCapacity = 16)
+    val departureOccurred: SharedFlow<DepartureOccurredUpdate> = _departureOccurred
 
     private val _pollError = MutableSharedFlow<Throwable>(extraBufferCapacity = 16)
     val pollError: SharedFlow<Throwable> = _pollError
@@ -89,19 +95,26 @@ class MonitoringService(
         val knownConnectionIds = settings.watchedConnections.map { it.id }.toHashSet()
         val orphanedKeys = lastKnownDelays.keys.filter { it.first !in knownConnectionIds }
         orphanedKeys.forEach { lastKnownDelays.remove(it) }
+        departedNotified.removeAll { it.first !in knownConnectionIds }
     }
 
     private suspend fun pollConnection(connection: WatchedConnection, notificationLeadTimeMinutes: Int) {
         if (connection.gtfsStopIds.isEmpty()) return
 
+        // minutesBefore keeps recently-departed trips in the response for a short while so we
+        // can detect and notify that they've actually left the stop, instead of them silently
+        // disappearing from the board the moment they depart.
         val departures = golemioClient.getDepartures(
             connection.gtfsStopIds,
+            minutesBefore = DEPARTED_LOOKBACK_MINUTES,
             minutesAfter = MAX_LOOKAHEAD_MINUTES,
             limit = 100
         )
 
         val allMatching = departures.filter { matchesConnection(connection, it) }
         val matching = allMatching.filter { it.delay?.isAvailable == true && it.delay.minutes != null }
+
+        val now = OffsetDateTime.now()
 
         val delayedCount = matching.count { it.delay!!.minutes!! > ON_TIME_THRESHOLD_MINUTES }
         val onTimeCount = matching.count { it.delay!!.minutes!! <= ON_TIME_THRESHOLD_MINUTES }
@@ -110,6 +123,7 @@ class MonitoringService(
         val currentTripIds = matching.map { it.trip?.id ?: "" }.toHashSet()
         val staleKeys = lastKnownDelays.keys.filter { it.first == connection.id && it.second !in currentTripIds }
         staleKeys.forEach { lastKnownDelays.remove(it) }
+        departedNotified.removeAll { it.first == connection.id && it.second !in currentTripIds }
 
         _statusUpdated.emit(
             ConnectionStatusUpdate(connection, delayedCount, onTimeCount, notDepartedCount, isScheduledToday = true)
@@ -120,14 +134,36 @@ class MonitoringService(
             val tripId = departure.trip?.id ?: ""
             val key = connection.id to tripId
 
-            val departureTime = parseTimestamp(departure.departureTimestamp?.predicted)
-                ?: parseTimestamp(departure.departureTimestamp?.scheduled)
-                ?: OffsetDateTime.now()
+            val scheduledTime = parseTimestamp(departure.departureTimestamp?.scheduled)
+                ?: parseTimestamp(departure.departureTimestamp?.predicted)
+                ?: now
+            val expectedTime = parseTimestamp(departure.departureTimestamp?.predicted)
+                ?: scheduledTime
+
+            val lineName = departure.route?.shortName ?: connection.lineName
+            val headsign = departure.trip?.headsign ?: connection.direction
+
+            // Once the expected departure time has passed, treat the trip as departed: notify
+            // once and stop emitting further delay updates for it.
+            if (!now.isBefore(expectedTime)) {
+                if (departedNotified.add(key)) {
+                    _departureOccurred.emit(
+                        DepartureOccurredUpdate(
+                            connection = connection,
+                            tripId = tripId,
+                            expectedTime = expectedTime,
+                            lineName = lineName,
+                            headsign = headsign
+                        )
+                    )
+                }
+                continue
+            }
 
             // Only notify once the departure is within the configured lead time; further-out
             // departures are still reflected in the status counts above but stay silent so the
             // user isn't alerted a day in advance.
-            val minutesUntilDeparture = java.time.Duration.between(OffsetDateTime.now(), departureTime).toMinutes()
+            val minutesUntilDeparture = java.time.Duration.between(now, expectedTime).toMinutes()
             if (minutesUntilDeparture > notificationLeadTimeMinutes) continue
 
             if (lastKnownDelays[key] == delayMinutes) continue
@@ -141,10 +177,11 @@ class MonitoringService(
                 DelayUpdate(
                     connection = connection,
                     tripId = tripId,
-                    departureTime = departureTime,
+                    scheduledTime = scheduledTime,
+                    expectedTime = expectedTime,
                     delayMinutes = delayMinutes,
-                    lineName = departure.route?.shortName ?: connection.lineName,
-                    headsign = departure.trip?.headsign ?: connection.direction,
+                    lineName = lineName,
+                    headsign = headsign,
                     isDelayed = delayMinutes > ON_TIME_THRESHOLD_MINUTES,
                     otherDeparturesOnTime = matching.size > 1 && otherDeparturesOnTime
                 )
@@ -184,5 +221,9 @@ class MonitoringService(
         /** How far ahead (in minutes) to fetch upcoming departures, so the UI can show
          * connections in the monitored window up to 24h in advance. */
         private const val MAX_LOOKAHEAD_MINUTES = 24 * 60
+
+        /** How far back (in minutes) to still fetch already-departed trips, so a "bus departed"
+         * notification can be sent shortly after it leaves the stop. */
+        private const val DEPARTED_LOOKBACK_MINUTES = 10
     }
 }

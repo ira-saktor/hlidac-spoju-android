@@ -56,6 +56,11 @@ class MonitoringForegroundService : Service() {
             }
         }
         scope.launch {
+            container.monitoringService.departureOccurred.collect { update ->
+                NotificationHelper.postDepartureOccurredNotification(applicationContext, update, currentLanguage)
+            }
+        }
+        scope.launch {
             container.monitoringService.pollError.collect { error ->
                 if (container.loggingEnabled) Log.w(TAG, "Poll error", error)
             }
