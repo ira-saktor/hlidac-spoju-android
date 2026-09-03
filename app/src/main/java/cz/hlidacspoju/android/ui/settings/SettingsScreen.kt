@@ -1,5 +1,11 @@
 package cz.hlidacspoju.android.ui.settings
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.PowerManager
+import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import cz.hlidacspoju.android.BuildConfig
 import cz.hlidacspoju.android.model.AppLanguage
@@ -36,6 +43,22 @@ import cz.hlidacspoju.android.model.AppTheme
 import cz.hlidacspoju.android.ui.AppViewModel
 import cz.hlidacspoju.android.ui.LocalStrings
 import cz.hlidacspoju.android.ui.Strings
+
+@SuppressLint("BatteryLife")
+private fun requestIgnoreBatteryOptimizations(context: Context) {
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    if (!powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
+        val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+            data = Uri.parse("package:${context.packageName}")
+        }
+        context.startActivity(intent)
+    }
+}
+
+private fun isIgnoringBatteryOptimizations(context: Context): Boolean {
+    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+    return powerManager.isIgnoringBatteryOptimizations(context.packageName)
+}
 
 private fun languageDisplayName(language: AppLanguage): String = when (language) {
     AppLanguage.CZECH -> "Čeština"
@@ -56,6 +79,8 @@ private fun themeDisplayName(strings: Strings, theme: AppTheme): String = when (
 fun SettingsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
     val settings by viewModel.settings.collectAsState()
     val strings = LocalStrings.current
+    val context = LocalContext.current
+    var batteryOptimizationIgnored by remember { mutableStateOf(isIgnoringBatteryOptimizations(context)) }
     var apiKey by remember(settings.golemioApiKey) { mutableStateOf(settings.golemioApiKey) }
     var pollIntervalText by remember(settings.pollIntervalSeconds) {
         mutableStateOf(settings.pollIntervalSeconds.toString())
@@ -141,6 +166,20 @@ fun SettingsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 }
                             )
                         }
+                    }
+                }
+            }
+            Column {
+                Text(strings("battery_optimization_title"), modifier = Modifier.fillMaxWidth())
+                Text(strings("battery_optimization_body"), modifier = Modifier.fillMaxWidth())
+                if (batteryOptimizationIgnored) {
+                    Text(strings("battery_optimization_granted"))
+                } else {
+                    OutlinedButton(onClick = {
+                        requestIgnoreBatteryOptimizations(context)
+                        batteryOptimizationIgnored = isIgnoringBatteryOptimizations(context)
+                    }) {
+                        Text(strings("battery_optimization_button"))
                     }
                 }
             }

@@ -11,6 +11,7 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             val serviceIntent = Intent(context, MonitoringForegroundService::class.java)
             ContextCompat.startForegroundService(context, serviceIntent)
+            MonitoringWatchdogWorker.schedule(context)
         }
     }
 }

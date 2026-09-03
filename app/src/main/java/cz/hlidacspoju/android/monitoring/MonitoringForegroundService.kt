@@ -6,6 +6,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.core.content.ContextCompat
 import cz.hlidacspoju.android.model.AppLanguage
 import cz.hlidacspoju.android.service.AppContainer
 import kotlinx.coroutines.CoroutineScope
@@ -24,7 +25,9 @@ class MonitoringForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        isRunning = true
         container = AppContainer.getInstance(applicationContext)
+        MonitoringWatchdogWorker.schedule(applicationContext)
         NotificationHelper.ensureChannels(applicationContext, currentLanguage)
         scope.launch {
             runCatching { container.configStore.load() }.getOrNull()?.let {
@@ -72,13 +75,28 @@ class MonitoringForegroundService : Service() {
         return START_STICKY
     }
 
+    /** Some OEMs kill the whole task (including services) when the user swipes the app away
+     * from Recents. Restarting the service here ensures monitoring keeps running. */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        val restartIntent = Intent(applicationContext, MonitoringForegroundService::class.java)
+        ContextCompat.startForegroundService(applicationContext, restartIntent)
+    }
+
     override fun onDestroy() {
+        isRunning = false
         job.cancel()
         super.onDestroy()
     }
 
     companion object {
         private const val TAG = "MonitoringFgService"
+
+        /** Tracked so the [cz.hlidacspoju.android.monitoring.MonitoringWatchdogWorker] can tell
+         * whether the service needs to be restarted. */
+        @Volatile
+        var isRunning: Boolean = false
+            private set
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

@@ -61,7 +61,11 @@ private val Cs = mapOf(
     "notification_delayed_text" to "Odjezd %1\$s naplánovaný na %2\$s má zpoždění %3\$d min. Očekávaný odjezd: %4\$s.",
     "notification_on_time_text" to "Odjezd %1\$s v %2\$s jede na čas.",
     "notification_other_on_time_suffix" to " Ostatní spoje této linky jedou na čas.",
-    "notification_departed_text" to "Odjezd %1\$s v %2\$s právě vyjel ze zastávky."
+    "notification_departed_text" to "Odjezd %1\$s v %2\$s právě vyjel ze zastávky.",
+    "battery_optimization_title" to "Spolehlivost na pozadí",
+    "battery_optimization_body" to "Pro spolehlivé upozornění i po zavření aplikace povolte vyjimku z optimalizace baterie.",
+    "battery_optimization_button" to "Vypnout optimalizaci baterie",
+    "battery_optimization_granted" to "Optimalizace baterie je pro tuto aplikaci vypnuta."
 )
 
 private val En = mapOf(
@@ -116,7 +120,11 @@ private val En = mapOf(
     "notification_delayed_text" to "Departure %1\$s scheduled for %2\$s is delayed by %3\$d min. Expected departure: %4\$s.",
     "notification_on_time_text" to "Departure %1\$s at %2\$s is on time.",
     "notification_other_on_time_suffix" to " Other departures on this line are on time.",
-    "notification_departed_text" to "Departure %1\$s at %2\$s has just left the stop."
+    "notification_departed_text" to "Departure %1\$s at %2\$s has just left the stop.",
+    "battery_optimization_title" to "Background reliability",
+    "battery_optimization_body" to "For reliable notifications even when the app is closed, exempt it from battery optimization.",
+    "battery_optimization_button" to "Disable battery optimization",
+    "battery_optimization_granted" to "Battery optimization is disabled for this app."
 )
 
 private val Ru = mapOf(
@@ -171,7 +179,11 @@ private val Ru = mapOf(
     "notification_delayed_text" to "Отправление %1\$s, запланированное на %2\$s, задерживается на %3\$d мин. Ожидаемое отправление: %4\$s.",
     "notification_on_time_text" to "Отправление %1\$s в %2\$s идёт по расписанию.",
     "notification_other_on_time_suffix" to " Остальные рейсы этой линии идут по расписанию.",
-    "notification_departed_text" to "Отправление %1\$s в %2\$s только что выехало с остановки."
+    "notification_departed_text" to "Отправление %1\$s в %2\$s только что выехало с остановки.",
+    "battery_optimization_title" to "Надёжность работы в фоне",
+    "battery_optimization_body" to "Для надёжных уведомлений даже после закрытия приложения отключите оптимизацию батареи.",
+    "battery_optimization_button" to "Отключить оптимизацию батареи",
+    "battery_optimization_granted" to "Оптимизация батареи для этого приложения отключена."
 )
 
 private val De = mapOf(
@@ -226,7 +238,11 @@ private val De = mapOf(
     "notification_delayed_text" to "Abfahrt %1\$s, geplant für %2\$s, hat %3\$d Min. Verspätung. Erwartete Abfahrt: %4\$s.",
     "notification_on_time_text" to "Abfahrt %1\$s um %2\$s ist pünktlich.",
     "notification_other_on_time_suffix" to " Andere Verbindungen dieser Linie sind pünktlich.",
-    "notification_departed_text" to "Abfahrt %1\$s um %2\$s ist soeben von der Haltestelle abgefahren."
+    "notification_departed_text" to "Abfahrt %1\$s um %2\$s ist soeben von der Haltestelle abgefahren.",
+    "battery_optimization_title" to "Zuverlässigkeit im Hintergrund",
+    "battery_optimization_body" to "Für zuverlässige Benachrichtigungen auch bei geschlossener App die Akku-Optimierung deaktivieren.",
+    "battery_optimization_button" to "Akku-Optimierung deaktivieren",
+    "battery_optimization_granted" to "Die Akku-Optimierung ist für diese App deaktiviert."
 )
 
 private val Fr = mapOf(
@@ -281,7 +297,11 @@ private val Fr = mapOf(
     "notification_delayed_text" to "Le départ %1\$s prévu à %2\$s a %3\$d min de retard. Départ prévu : %4\$s.",
     "notification_on_time_text" to "Le départ %1\$s à %2\$s est à l'heure.",
     "notification_other_on_time_suffix" to " Les autres correspondances de cette ligne sont à l'heure.",
-    "notification_departed_text" to "Le départ %1\$s à %2\$s vient de quitter l'arrêt."
+    "notification_departed_text" to "Le départ %1\$s à %2\$s vient de quitter l'arrêt.",
+    "battery_optimization_title" to "Fiabilité en arrière-plan",
+    "battery_optimization_body" to "Pour des notifications fiables même lorsque l'application est fermée, désactivez l'optimisation de la batterie.",
+    "battery_optimization_button" to "Désactiver l'optimisation de la batterie",
+    "battery_optimization_granted" to "L'optimisation de la batterie est désactivée pour cette application."
 )
 
 private val translations: Map<AppLanguage, Map<String, String>> = mapOf(
