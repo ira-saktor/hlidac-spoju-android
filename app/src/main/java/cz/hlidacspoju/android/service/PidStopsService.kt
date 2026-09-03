@@ -62,12 +62,15 @@ class PidStopsService(
             .map { it.first }
     }
 
-    /** Exact (trim-insensitive) match against a stop group name, used to auto-confirm a typed
-     * stop name without requiring the user to pick it from the dropdown. */
+    /** Exact (trim/diacritics-insensitive) match against a stop group name, used to auto-confirm
+     * a typed stop name without requiring the user to pick it from the dropdown. */
     fun findExactMatch(doc: PidStopsDocument, query: String): PidStopGroup? {
         val trimmed = query.trim()
         if (trimmed.isBlank()) return null
-        return doc.stopGroups.firstOrNull { it.name.trim().equals(trimmed, ignoreCase = true) }
+        val normalizedQuery = normalize(trimmed)
+        return normalizedNamesFor(doc)
+            .firstOrNull { (_, normalizedName) -> normalizedName.equals(normalizedQuery, ignoreCase = true) }
+            ?.first
     }
 
     private fun normalizedNamesFor(doc: PidStopsDocument): List<Pair<PidStopGroup, String>> {
