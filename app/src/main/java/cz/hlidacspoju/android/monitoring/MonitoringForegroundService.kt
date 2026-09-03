@@ -55,12 +55,18 @@ class MonitoringForegroundService : Service() {
 
         scope.launch {
             container.monitoringService.delayChanged.collect { update ->
-                NotificationHelper.postDelayNotification(applicationContext, update, currentLanguage)
+                val id = NotificationHelper.postDelayNotification(applicationContext, update, currentLanguage)
+                scope.launch {
+                    NotificationHelper.scheduleAutoDismiss(applicationContext, id, update.expectedTime.plusMinutes(AUTO_DISMISS_MINUTES))
+                }
             }
         }
         scope.launch {
             container.monitoringService.departureOccurred.collect { update ->
-                NotificationHelper.postDepartureOccurredNotification(applicationContext, update, currentLanguage)
+                val id = NotificationHelper.postDepartureOccurredNotification(applicationContext, update, currentLanguage)
+                scope.launch {
+                    NotificationHelper.scheduleAutoDismiss(applicationContext, id, update.expectedTime.plusMinutes(AUTO_DISMISS_MINUTES))
+                }
             }
         }
         scope.launch {
@@ -91,6 +97,10 @@ class MonitoringForegroundService : Service() {
 
     companion object {
         private const val TAG = "MonitoringFgService"
+
+        /** Old delay/departure notifications auto-dismiss this many minutes after the (delay-adjusted)
+         * departure time, so the tray doesn't fill up with stale trips. */
+        private const val AUTO_DISMISS_MINUTES = 10L
 
         /** Tracked so the [cz.hlidacspoju.android.monitoring.MonitoringWatchdogWorker] can tell
          * whether the service needs to be restarted. */
